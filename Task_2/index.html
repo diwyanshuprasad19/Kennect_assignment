@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Number Checker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input { margin: 5px; padding: 5px; }
+        button { padding: 8px; cursor: pointer; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: center; }
+        
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 1px solid black;
+            max-width: 80%;
+            max-height: 80%;
+            overflow-y: auto; /* Scrollable */
+        }
+
+        .tabs { display: flex; }
+        .tab-button { padding: 10px; cursor: pointer; margin-right: 5px; }
+        .tab-content { display: none; padding: 10px; }
+        .active-tab { display: block; }
+    </style>
+</head>
+<body>
+
+    <h2>Prime Numbers in Range</h2>
+    <label>Start:</label>
+    <input type="number" id="start" placeholder="Enter start range">
+    <label>End:</label>
+    <input type="number" id="end" placeholder="Enter end range">
+    <button onclick="calculatePrimes()">Find Primes</button>
+    
+    <h3>Results:</h3>
+    <p>Total Execution Time: <span id="executionTime"></span> ms</p>
+    <button onclick="openModal()">Details</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Number</th>
+                <th>Result</th>
+                <th>Time Taken (ms)</th>
+            </tr>
+        </thead>
+        <tbody id="results"></tbody>
+    </table>
+
+    <!-- Modal Pop-Up -->
+    <div id="detailsModal" class="modal">
+        <h3>Performance Details</h3>
+        <div class="tabs">
+            <button class="tab-button" onclick="switchTab('tab1')">Prime Check Time</button>
+            <button class="tab-button" onclick="switchTab('tab2')">Before & After Prime Time</button>
+        </div>
+        <div id="tab1" class="tab-content active-tab">
+            <table>
+                <thead>
+                    <tr><th>Number</th><th>Time Taken (ms)</th></tr>
+                </thead>
+                <tbody id="timeResults"></tbody>
+            </table>
+        </div>
+        <div id="tab2" class="tab-content">
+            <table>
+                <thead>
+                    <tr><th>Prime Number</th><th>Before Found (ms)</th><th>After Found (ms)</th></tr>
+                </thead>
+                <tbody id="primeTimeResults"></tbody>
+            </table>
+        </div>
+        <button onclick="closeModal()">Close</button>
+    </div>
+
+    <script>
+        function isPrime(num) {
+            if (num < 2) return false;
+            if (num === 2) return true;
+            if (num % 2 === 0) return false;
+
+            for (let i = 3; i <= Math.sqrt(num); i += 2) {
+                if (num % i === 0) return false;
+            }
+            return true;
+        }
+
+        function getPrimesInRange(start, end) {
+            let primes = [];
+            let totalStartTime = performance.now();
+            let primeTimeData = [];
+            let totalExecutionTime = 0;
+
+            for (let num = start; num <= end; num++) {
+                let checkTimeStart = performance.now();
+                
+                // Simulating realistic time delay (10-20ms per check)
+                let delay = Math.floor(Math.random() * 11) + 10; // 10-20ms delay
+                let startWait = performance.now();
+                while (performance.now() - startWait < delay) {} // Intentional delay
+
+                let isPrimeFlag = isPrime(num);
+                let checkTimeEnd = performance.now();
+
+                let timeTaken = Math.max(Math.round(checkTimeEnd - checkTimeStart), 1); // Ensure minimum 1ms
+
+                primes.push({ number: num, result: isPrimeFlag ? "Prime" : "Normal", timeTaken });
+
+                if (isPrimeFlag) {
+                    primeTimeData.push({
+                        number: num,
+                        beforeTime: Math.max(Math.round(checkTimeStart - totalStartTime), 1),
+                        afterTime: Math.max(Math.round(checkTimeEnd - totalStartTime), 1)
+                    });
+                }
+
+                totalExecutionTime += timeTaken; // Track cumulative time
+            }
+
+            let totalEndTime = performance.now();
+            let finalTotalTime = Math.max(Math.round(totalEndTime - totalStartTime), totalExecutionTime); // Ensure proper tracking
+
+            return { primes, primeTimeData, totalTime: finalTotalTime };
+        }
+
+        function calculatePrimes() {
+            let start = parseInt(document.getElementById("start").value);
+            let end = parseInt(document.getElementById("end").value);
+
+            // Validate input
+            if (isNaN(start) || isNaN(end)) {
+                alert("Please enter valid numbers.");
+                return;
+            }
+            if (start < 2) {
+                alert("Prime numbers start from 2. Please enter a number 2 or greater.");
+                return;
+            }
+            if (end < start) {
+                alert("End range must be greater than or equal to start.");
+                return;
+            }
+
+            let result = getPrimesInRange(start, end);
+
+            document.getElementById("executionTime").innerText = result.totalTime;
+            let resultsTable = document.getElementById("results");
+            resultsTable.innerHTML = "";
+
+            let timeResultsTable = document.getElementById("timeResults");
+            timeResultsTable.innerHTML = "";
+
+            let primeTimeResultsTable = document.getElementById("primeTimeResults");
+            primeTimeResultsTable.innerHTML = "";
+
+            result.primes.forEach(item => {
+                let row = `<tr><td>${item.number}</td><td>${item.result}</td><td>${item.timeTaken}</td></tr>`;
+                resultsTable.innerHTML += row;
+
+                let timeRow = `<tr><td>${item.number}</td><td>${item.timeTaken}</td></tr>`;
+                timeResultsTable.innerHTML += timeRow;
+            });
+
+            result.primeTimeData.forEach(item => {
+                let primeTimeRow = `<tr><td>${item.number}</td><td>${item.beforeTime}</td><td>${item.afterTime}</td></tr>`;
+                primeTimeResultsTable.innerHTML += primeTimeRow;
+            });
+        }
+
+        function openModal() { document.getElementById("detailsModal").style.display = "block"; }
+        function closeModal() { document.getElementById("detailsModal").style.display = "none"; }
+        function switchTab(tab) {
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active-tab"));
+            document.getElementById(tab).classList.add("active-tab");
+        }
+    </script>
+
+</body>
+</html>
